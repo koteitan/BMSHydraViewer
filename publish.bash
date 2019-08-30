@@ -4,7 +4,7 @@ read answer
 case $answer in
   y)
     cd ../koteitan.github.io/BMSHydraViewer/
-    git pull
+    git pull origin master
     cd ..
     git add BMSHydraViewer
     git commit -m"merge"
