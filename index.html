@@ -1,22 +1,58 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BMS Upper-branch ignoring Hydra Viewer</title>
+  <link rel="stylesheet" href="style.css">
   <script src="./script.js"></script>
 </head>
 <body>
   <h1>BMS Upper-branch ignoring Hydra Viewer</h1>
-  <form name=form>
-  <textarea id="input" style="width:500px;height:60px;display:block;overflow:auto;background-color:white;border:darkgray solid 1px;" contentEditable>(0,0,0)(1,1,1)(2,1,0)(1,1,1)
+  
+  <div class="container">
+    <form name="form">
+      <div class="form-group">
+        <textarea id="input" class="input-textarea" contentEditable>(0,0,0)(1,1,1)(2,1,0)(1,1,1)
 (0,0,0)(1,1,1)(2,2,1)(3,1,0)(4,2,1)(5,3,1)(6,2,0)(5,2,1)(6,2,1)</textarea>
-  <input type=button value="Draw" onclick="javascript:draw();draw();">
-  <input type=radio name="version" value="3.3" onchange="javascript:changeVersion();">3.3
-  <input type=radio name="version" value="4"   onchange="javascript:changeVersion();">4
-  <input type=radio name="version" value="3.3+4" checked onchange="javascript:changeVersion();">3.3+4
-  </form>
-  <canvas id="output" width=640 height=960 style="display:none"></canvas>
-  <img id='outimg' style='border-style:none;border-width:1px'>
+      </div>
+      
+      <div class="controls">
+        <button type="button" onclick="javascript:handledrawbutton();">Draw</button>
+        
+        <div class="version-selector">
+          <div class="checkbox-group">
+            <input type="radio" id="version-3.3" name="version" value="3.3" onchange="javascript:changeVersion();">
+            <label for="version-3.3">3.3</label>
+          </div>
+          
+          <div class="checkbox-group">
+            <input type="radio" id="version-4" name="version" value="4" onchange="javascript:changeVersion();">
+            <label for="version-4">4</label>
+          </div>
+          
+          <div class="checkbox-group">
+            <input type="radio" id="version-3.3+4" name="version" value="3.3+4" checked onchange="javascript:changeVersion();">
+            <label for="version-3.3+4">3.3+4</label>
+          </div>
+        </div>
+        
+        <div class="link-container">
+          <a id="link" href="">link</a>
+        </div>
+      </div>
+    </form>
+  </div>
+  
+  <div class="visualization">
+    <canvas id="output" width="640" height="960" style="display:none"></canvas>
+    <img id="outimg" style="border-style:none;border-width:1px">
+  </div>
+  
+  <address>
+    BMS Upper-branch ignoring Hydra Viewer<br>
+    Programmed by <a href="https://twitter.com/koteitan">koteitan</a><br>
+    Source code is on <a href="https://github.com/koteitan/BMSHydraViewer">GitHub</a>
+  </address>
 </body>
 </html>
