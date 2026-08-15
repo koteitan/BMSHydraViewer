@@ -1,3 +1,7 @@
+*, *::before, *::after {
+  box-sizing: border-box; /* so width:100% includes padding and border */
+}
+
 :root {
   color-scheme: light;
   --primary-color: #16a085;
@@ -207,6 +211,7 @@ button:hover {
 }
 
 .visualization svg, .visualization img, .output-image {
+  box-sizing: content-box; /* the width attribute is the canvas pixel size, so keep the image unscaled */
   max-width: 100%;
   height: auto;
   border: 1px solid var(--border-color);
