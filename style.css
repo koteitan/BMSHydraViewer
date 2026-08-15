@@ -1,14 +1,42 @@
 :root {
+  color-scheme: light;
   --primary-color: #16a085;
   --secondary-color: #1abc9c;
   --background-color: #f8f9fa;
   --text-color: #333333;
+  --muted-color: #666666;
   --border-color: #dfe6e9;
   --accent-color: #3498db;
   --hover-color: #2980b9;
   --card-bg: #ffffff;
   --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   --code-bg: #f1f2f6;
+  --info-bg: #e3f2fd;
+  /* the canvas is painted by script.js, which reads these */
+  --canvas-bg: #ffffff;
+  --canvas-fg: #000000;
+  --canvas-sym: #ff0000;
+  --canvas-flat: #dddddd;
+}
+
+:root.dark {
+  color-scheme: dark;
+  --primary-color: #1abc9c;
+  --secondary-color: #48c9b0;
+  --background-color: #1a1a1a;
+  --text-color: #d4d4d4;
+  --muted-color: #9aa0a6;
+  --border-color: #3a3f44;
+  --accent-color: #5dade2;
+  --hover-color: #85c1e9;
+  --card-bg: #242628;
+  --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+  --code-bg: #2c2f33;
+  --info-bg: #1c3a4d;
+  --canvas-bg: #242628;
+  --canvas-fg: #d4d4d4;
+  --canvas-sym: #ff6b6b;
+  --canvas-flat: #55595e;
 }
 
 body {
@@ -28,6 +56,7 @@ h1 {
   font-weight: 600;
   border-bottom: 2px solid var(--border-color);
   padding-bottom: 0.5rem;
+  padding-right: 60px; /* keep clear of the fixed menu button */
 }
 
 h2 {
@@ -63,7 +92,7 @@ address {
   text-align: right;
   font-style: normal;
   font-size: 0.9rem;
-  color: #666;
+  color: var(--muted-color);
 }
 
 .container {
@@ -93,6 +122,7 @@ textarea, .input-textarea {
   font-size: 14px;
   resize: vertical;
   background-color: var(--card-bg);
+  color: var(--text-color);
   transition: border-color 0.2s, box-shadow 0.2s;
   min-height: 100px;
 }
@@ -164,7 +194,7 @@ button:hover {
 }
 
 .info-box {
-  background-color: #e3f2fd;
+  background-color: var(--info-bg);
   border-left: 4px solid var(--accent-color);
   padding: 10px 15px;
   margin: 15px 0;
@@ -181,7 +211,64 @@ button:hover {
   height: auto;
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--canvas-bg);
+}
+
+/* hamburger pulldown menu */
+.menu {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 100;
+}
+
+.menu-button {
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: var(--card-shadow);
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 8px 12px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.menu-button:hover {
+  background-color: var(--code-bg);
+}
+
+.menu-panel {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 6px;
+  min-width: 160px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: var(--card-shadow);
+  padding: 8px;
+}
+
+.menu-panel.open {
+  display: block;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.menu-item:hover {
+  background-color: var(--code-bg);
 }
 
 .input-row {
@@ -238,7 +325,11 @@ button:hover {
   button {
     width: 100%;
   }
-  
+
+  .menu-button {
+    width: auto;
+  }
+
   .input-row {
     flex-direction: column;
     align-items: flex-start;

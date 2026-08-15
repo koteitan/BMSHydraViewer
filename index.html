@@ -8,7 +8,17 @@
   <script src="./script.js"></script>
 </head>
 <body>
-  <h1>BMS Upper-branch ignoring Hydra Viewer</h1>
+  <div class="menu" id="menu">
+    <button type="button" class="menu-button" id="menu-button" aria-label="menu" aria-expanded="false" onclick="javascript:toggleMenu();">&#9776;</button>
+    <div class="menu-panel" id="menu-panel">
+      <label class="menu-item">
+        <input type="checkbox" id="dark-check" onchange="javascript:handledarkcheck();">
+        <span>Dark mode</span>
+      </label>
+    </div>
+  </div>
+
+  <h1>BMS Upper-branch ignoring Hydra Viewer v1.0.0</h1>
   
   <div class="container">
     <form name="form">
@@ -22,17 +32,17 @@
         
         <div class="version-selector">
           <div class="checkbox-group">
+            <input type="radio" id="version-4" name="version" value="4" checked onchange="javascript:changeVersion();">
+            <label for="version-4">4</label>
+          </div>
+
+          <div class="checkbox-group">
             <input type="radio" id="version-3.3" name="version" value="3.3" onchange="javascript:changeVersion();">
             <label for="version-3.3">3.3</label>
           </div>
-          
+
           <div class="checkbox-group">
-            <input type="radio" id="version-4" name="version" value="4" onchange="javascript:changeVersion();">
-            <label for="version-4">4</label>
-          </div>
-          
-          <div class="checkbox-group">
-            <input type="radio" id="version-3.3+4" name="version" value="3.3+4" checked onchange="javascript:changeVersion();">
+            <input type="radio" id="version-3.3+4" name="version" value="3.3+4" onchange="javascript:changeVersion();">
             <label for="version-3.3+4">3.3+4</label>
           </div>
         </div>
