@@ -95,6 +95,127 @@ Matrix.prototype.color=function (x,y,ver){
     return canvasflat;
   }
 }
+//standard check, ported from yaBMS c/bms.c (isstd, expand, compmat) for BM4.
+//a matrix here is an array of columns, every column an array of ys numbers
+var bmCompare=function (a,b,ys){ // +1: a>b, 0: a==b, -1: a<b, lexicographic, a prefix is smaller
+  var n=Math.min(a.length,b.length);
+  for(var x=0;x<n;x++){
+    for(var y=0;y<ys;y++){
+      if(a[x][y]>b[x][y])return 1;
+      if(a[x][y]<b[x][y])return -1;
+    }
+  }
+  return a.length>b.length?1:a.length<b.length?-1:0;
+}
+var bmParents=function (m){ // pim[x][y] = parent column of (x,y), -1 = none
+  var xs=m.length,ys=m[0].length;
+  var pim=[];
+  for(var x=0;x<xs;x++){
+    pim[x]=[];
+    var c=m[x][0],px;
+    for(px=x-1;px>=0;px--){
+      if(m[px][0]<c)break;
+    }
+    pim[x][0]=px;
+    for(var y=1;y<ys;y++){
+      c=m[x][y];
+      if(c===0){
+        pim[x][y]=-1;
+        continue;
+      }
+      for(px=pim[x][y-1];px!==-1;px=pim[px][y-1]){
+        if(m[px][y]<c)break;
+      }
+      pim[x][y]=px;
+    }
+  }
+  return pim;
+}
+var bmExpand=function (m,b){ // m[b] in BM4, as a new array of columns
+  var xs=m.length;
+  if(xs===0)return [];
+  var ys=m[0].length;
+  var last=m[xs-1];
+  var lnz=-1; // lowermost nonzero row of the last column
+  for(var y=0;y<ys;y++){
+    if(last[y]===0)break;
+    lnz=y;
+  }
+  var out=m.slice(0,xs-1).map(function (c){return c.slice();});
+  if(lnz<0||b===0)return out; // simple cut
+  var pim=bmParents(m);
+  var r=pim[xs-1][lnz]; // bad root
+  if(r<0)return out; // no bad root, does not happen for a standard matrix
+  var bpxs=xs-r-1; // columns of the bad part
+  var delta=[];
+  for(var y=0;y<lnz;y++)delta[y]=last[y]-m[r][y];
+  var am=[[]]; // am[x][y] = 1 if (r+x,y) ascends
+  for(var y=0;y<=lnz;y++)am[0][y]=1;
+  for(var x=1;x<bpxs;x++){
+    am[x]=[];
+    for(var y=0;y<=lnz;y++){
+      var p=pim[r+x][y];
+      am[x][y]=(p<r)?0:am[p-r][y];
+    }
+  }
+  for(var a=1;a<=b;a++){ // the a-th copy ascends a*delta
+    for(var x=0;x<bpxs;x++){
+      var col=[];
+      for(var y=0;y<ys;y++){
+        col[y]=m[r+x][y]+((y<lnz)?a*am[x][y]*delta[y]:0);
+      }
+      out.push(col);
+    }
+  }
+  return out;
+}
+var bmIsStandard=function (b){ // true / false, or null if it gives up
+  var xs=b.length;
+  if(xs===0)return true;
+  var ys=b[0].length;
+  //s = the smallest standard matrix >= b that agrees with (0,0,..)(1,1,..)(2,2,..).. up to the first difference
+  var s=[];
+  var found=false;
+  for(var x=0;x<xs&&!found;x++){
+    var col=[];
+    for(var y=0;y<ys;y++){
+      var v=b[x][y];
+      if(v>x)return false; // illegal
+      if(v<x){
+        col[y]=v+1;
+        for(var y2=y+1;y2<ys;y2++)col[y2]=0;
+        found=true;
+        break;
+      }
+      col[y]=x;
+    }
+    s.push(col);
+  }
+  for(var iter=0;iter<100000;iter++){
+    var c=bmCompare(s,b,ys);
+    if(c===0)return true;
+    if(c<0)return false;
+    //expand s with the bracket that just overshoots b's width, then cut down to b
+    var oldxsm1=s.length-1;
+    var bplen=bmExpand(s,1).length-oldxsm1;
+    var br=(bplen!==0)?Math.floor((xs-oldxsm1)/bplen)+1:0;
+    s=bmExpand(s,br);
+    if(s.length>xs)s=s.slice(0,xs);
+    for(var x=0;x<s.length;x++){ // cut at the first column that exceeds b
+      var over=false;
+      for(var y=0;y<ys;y++)if(s[x][y]>b[x][y])over=true;
+      if(over){
+        s=s.slice(0,x+1);
+        break;
+      }
+    }
+  }
+  return null;
+}
+Matrix.prototype.isStandard=function (){
+  if(this.standard===undefined)this.standard=bmIsStandard(this.matrix);
+  return this.standard;
+}
 var BMV="4";
 var green="#56f442";
 var pink="#e841f4";
@@ -180,18 +301,31 @@ window.onload=function (){
   dg("dark-check").checked=uistate.dark;
   restoreState();
   loadURL(); //the URL wins over the saved state
+  fitTextarea();
   draw();
   updateURL();
   saveState();
   form.input.addEventListener("input",handleinput);
+  window.addEventListener("resize",fitTextarea); //soft wrapping changes with the width
   document.addEventListener("click",function (e){
     if(!dg("menu").contains(e.target))closeMenu();
   });
 }
 var handleinput=function (){
+  fitTextarea();
   draw();
   updateURLLater();
   saveState();
+}
+//keep the textarea one line taller than its content, soft-wrapped lines included
+var fitTextarea=function (){
+  var ta=form.input;
+  var cs=getComputedStyle(ta);
+  var line=parseFloat(cs.lineHeight);
+  if(isNaN(line))line=parseFloat(cs.fontSize)*1.2; //"normal"
+  var border=parseFloat(cs.borderTopWidth)+parseFloat(cs.borderBottomWidth);
+  ta.style.height="0px"; //so scrollHeight shrinks back when lines are deleted
+  ta.style.height=(ta.scrollHeight+line+border)+"px"; //scrollHeight = content + padding
 }
 var cssvar=function (name){
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -273,12 +407,14 @@ var draw=function (){
         xx+=30+(matrix.columns+1)*30;
         x=[x,xx-50].max();
         y=[y1,y2].max();
+        x=[x,drawStandardWarning(50,y,matrix)].max();
       }else{
         // single matrix
         var xx=50;
         y=drawMatrix(xx, y, BMV, matrix);
         xx+=30+(matrix.columns+1)*30;
         x=[x,xx-50].max();
+        x=[x,drawStandardWarning(50,y,matrix)].max();
       }
     }//m
 
@@ -294,6 +430,17 @@ var draw=function (){
     outimg.src = canvas.toDataURL('image/jpg');
   }//for cycle
 }//draw()
+//"(🚨 non-standard)" to the right of the bottom root mark; returns the right edge used
+var drawStandardWarning=function (x, ynext, matrix){
+  if(matrix.isStandard()!==false)return 0;
+  var text="(🚨 non-standard)";
+  var tx=x-10;         // the root mark spans x-40..x-20
+  var ty=ynext-50+36;  // drawMatrix returns the last row base + 50
+  ctx.fillStyle=canvassym;
+  ctx.font="15px arial";
+  ctx.fillText(text,tx,ty);
+  return tx+ctx.measureText(text).width+marginleft;
+}
 var drawMatrix=function (x, y, ver, matrix){
   var columns=matrix.columns;
   var rows=matrix.rows;

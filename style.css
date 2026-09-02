@@ -126,11 +126,12 @@ textarea, .input-textarea {
   border-radius: 4px;
   font-family: monospace;
   font-size: 14px;
-  resize: vertical;
+  line-height: 1.5; /* a fixed value, script.js reads it to size the height */
+  resize: none;     /* the height follows the content, see fitTextarea() */
+  overflow: hidden;
   background-color: var(--card-bg);
   color: var(--text-color);
   transition: border-color 0.2s, box-shadow 0.2s;
-  min-height: 100px;
 }
 
 textarea:focus {
