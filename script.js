@@ -123,7 +123,6 @@ if(typeof uistate.dark!=="boolean")uistate.dark=true; //default is dark
 //applied here, while <head> is being parsed, so the page never flashes light
 document.documentElement.classList.toggle("dark",uistate.dark);
 var saveState=function (){
-  uistate.version=BMV;
   uistate.input=form.input.value;
   try{
     localStorage.setItem(STORAGE_KEY,JSON.stringify(uistate));
@@ -132,27 +131,6 @@ var saveState=function (){
 }
 var restoreState=function (){
   if(typeof uistate.input==="string")form.input.value=uistate.input;
-  setVersion(uistate.version);
-}
-var setVersion=function (v){
-  var found=false;
-  for(var i=0;i<form.version.length;i++){
-    if(form.version[i].value===v)found=true;
-  }
-  if(!found)return false; //ignore an unknown version and keep the current one
-  for(var i=0;i<form.version.length;i++){
-    form.version[i].checked=(form.version[i].value===v);
-  }
-  BMV=v;
-  return true;
-}
-var changeVersion = function (){
-  for(var i=0;i<form.version.length;i++){
-    if(form.version[i].checked)BMV=form.version[i].value;
-  }
-  draw();
-  updateLink();
-  saveState();
 }
 //menu
 var toggleMenu=function (){
@@ -169,19 +147,25 @@ var handledarkcheck=function (){
   draw();
   saveState();
 }
-//permalink
+//url query, kept in sync with the textarea
 var encodeParam=function (s){ // keep (),: readable, they are legal in a query
   return encodeURIComponent(s).replace(/%28/g,"(").replace(/%29/g,")").replace(/%2C/g,",");
 }
-var updateLink=function (){
+var updateURL=function (){
   var base=location.href.split("#")[0].split("?")[0];
-  dg("link").href=base+"?m="+encodeParam(form.input.value)+"&v="+encodeParam(BMV);
+  try{
+    history.replaceState(null,"",base+"?m="+encodeParam(form.input.value));
+  }catch(e){ //Safari throws when replaceState is called too often
+  }
 }
-var loadLink=function (){
-  var urlsp=new URLSearchParams(location.search);
-  var m=urlsp.get("m");
+var urltimer=null;
+var updateURLLater=function (){ //debounced, so typing does not hammer replaceState
+  clearTimeout(urltimer);
+  urltimer=setTimeout(updateURL,300);
+}
+var loadURL=function (){
+  var m=new URLSearchParams(location.search).get("m");
   if(m!==null)form.input.value=m;
-  setVersion(urlsp.get("v"));
 }
 //display
 var dg=function (id){
@@ -195,17 +179,18 @@ window.onload=function (){
   ctx=canvas.getContext("2d");
   dg("dark-check").checked=uistate.dark;
   restoreState();
-  loadLink(); //the URL wins over the saved state
+  loadURL(); //the URL wins over the saved state
   draw();
-  updateLink();
+  updateURL();
   saveState();
+  form.input.addEventListener("input",handleinput);
   document.addEventListener("click",function (e){
     if(!dg("menu").contains(e.target))closeMenu();
   });
 }
-var handledrawbutton=function (){
+var handleinput=function (){
   draw();
-  updateLink();
+  updateURLLater();
   saveState();
 }
 var cssvar=function (name){
@@ -232,37 +217,36 @@ var textColorOn=function (color){
   var l=0.2126*r+0.7152*g+0.0722*b; //relative luminance, WCAG 2.x
   return l>0.179?"#000000":"#ffffff";
 }
+//"(0,0,0)(1,1,1)[3]\n..." -> [Matrix,...]; one matrix per line, never throws
+var parseMatrices=function (text){
+  var list=[];
+  var lines=text.replace(/\[[^\]]*\]/g,"").split("\n"); //drop the [..] notes that basmat appends
+  for(var l=0;l<lines.length;l++){
+    var line=lines[l].replace(/[^0-9,()]/g,""); //anything else is noise
+    var columns=[];
+    var re=/\(([0-9,]*)\)/g;
+    var g;
+    while((g=re.exec(line))!==null){
+      var col=g[1].split(",").filter(function (v){return v!=="";}).map(Number);
+      if(col.length>0)columns.push(col);
+    }
+    if(columns.length===0)continue; //empty or unparsable line
+    var rows=0;
+    for(var i=0;i<columns.length;i++)rows=[rows,columns[i].length].max();
+    for(var i=0;i<columns.length;i++){
+      while(columns[i].length<rows)columns[i].push(0);
+    }
+    list.push(new Matrix(columns));
+  }
+  return list;
+}
 var draw=function (){
   updateCanvasColors();
+  var matrixList=parseMatrices(form.input.value);
+  var matrices=matrixList.length;
+  outimg.style.display=matrices?"":"none"; //nothing to show yet
+  if(!matrices)return;
   for(var cycle=0;cycle<2;cycle++){ // draw twice because image size
-    //parse matrices
-    var matricesText=form.input.value.replace(/\[.*\]/g,"").replace(/\n\n+/g,"\n").replace(/ /g,"");
-    var matrixTextList=matricesText.split("\n");
-    var matrices = matrixTextList.length;
-    var matrixList = new Array(matrices);
-    var height=0;
-    for(var m=0;m<matrices;m++){
-      matrixList[m]=JSON.parse(
-        "["+matrixTextList[m]
-          .replace(/\(/g,"[")
-          .replace(/\)/g,"]")
-          .replace(/\]\[/g,"],[")+"]");
-      var matrix=matrixList[m];
-      var columns=matrix.length;
-      var rows=0;
-      for (var i=0;i<columns;i++){
-        if (matrix[i].length>rows){
-          rows=matrix[i].length;
-        }
-      }
-      for (var i=0;i<columns;i++){
-        while (matrix[i].length<rows){
-          matrix[i].push(0);
-        }
-      }
-      matrixList[m]=new Matrix(matrix);
-    }
-
     //clear canvas
     ctx.fillStyle=canvasbg;
     ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -361,7 +345,6 @@ var drawMatrix=function (x, y, ver, matrix){
     for (var x=0;x<matrix.columns;x++){
       //node
       ctx.strokeStyle=canvasfg;
-      console.log(x+","+y+":"+matrix.getParent(x,y))
       var nodecolor=matrix.color(x,y,ver);
       ctx.fillStyle=nodecolor;
       ctx.lineWidth=1;
