@@ -134,6 +134,24 @@ textarea, .input-textarea {
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+/* textarea with the expand button at its right */
+.editor {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.editor textarea {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.expand-button {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 10px 14px;
+}
+
 textarea:focus {
   border-color: var(--primary-color);
   outline: none;
@@ -334,7 +352,7 @@ button:hover {
     width: 100%;
   }
 
-  .menu-button {
+  .menu-button, .expand-button {
     width: auto;
   }
 

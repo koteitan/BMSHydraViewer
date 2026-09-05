@@ -306,6 +306,9 @@ window.onload=function (){
   updateURL();
   saveState();
   form.input.addEventListener("input",handleinput);
+  ["input","keyup","click","select","focus"].forEach(function (ev){
+    form.input.addEventListener(ev,trackCaret);
+  });
   window.addEventListener("resize",fitTextarea); //soft wrapping changes with the width
   document.addEventListener("click",function (e){
     if(!dg("menu").contains(e.target))closeMenu();
@@ -316,6 +319,39 @@ var handleinput=function (){
   draw();
   updateURLLater();
   saveState();
+}
+//expand button: inserts X[1], X[2], X[3], ... one by one under the line X of the caret
+var lastCaret=0;      // caret offset as the user last placed it; our own edits never touch it
+var expandState=null; // {insertAt, base, n, value}
+var trackCaret=function (){ // on every user interaction with the textarea
+  lastCaret=form.input.selectionStart;
+  expandState=null;   // the next press starts a new sequence from the caret line
+}
+var handleexpand=function (){
+  var ta=form.input;
+  var lines=ta.value.split("\n");
+  var st=expandState;
+  if(!(st&&st.value===ta.value)){ //first press, or the text changed since the last one
+    var caret=Math.min(lastCaret,ta.value.length);
+    var line=ta.value.substr(0,caret).split("\n").length-1;
+    var parsed=parseMatrices(lines[line]||"");
+    if(parsed.length===0)return; //no matrix on the caret line
+    st=expandState={insertAt:line+1,base:parsed[0].matrix,n:1};
+  }
+  var e=bmExpand(st.base,st.n); //X[n]; for a successor X this is the same cut for every n
+  if(e.length===0)return; //X[n] is empty, nothing to insert
+  st.n++;
+  lines.splice(st.insertAt,0,new Matrix(e).toString()); //right under X[n-1]
+  st.insertAt++;
+  ta.value=lines.join("\n"); //browsers move the caret here, which is why the caret is tracked by trackCaret instead
+  st.value=ta.value;
+  if(document.activeElement===ta){ //still focused (a tap on a phone does not blur it): put the caret back on X
+    try{
+      ta.setSelectionRange(lastCaret,lastCaret);
+    }catch(err){
+    }
+  }
+  handleinput();
 }
 //keep the textarea one line taller than its content, soft-wrapped lines included
 var fitTextarea=function (){
